@@ -1,5 +1,5 @@
 import pygame
-from random import random
+from random import random, randint
 from math import sqrt
 
 SCREEN_SIZE = (1280, 720)
@@ -48,7 +48,7 @@ class Line:
         self.points = []
         self.speeds = []
 
-    def add(self, point, speed):
+    def add_point(self, point, speed):
         self.points.append(point)
         self.speeds.append(speed)
 
@@ -71,29 +71,6 @@ class Line:
                 pygame.draw.circle(gameDisplay, color,
                                    (point.int_pair()), width)
 
-    def speed_up(self, n):
-        for s in range(len(self.speeds)):
-            self.speeds[s] *= n
-
-    def delete(self, ind):
-        self.points.pop(ind)
-        self.points.pop(ind)
-
-
-class Joint(Line):
-
-    def __init__(self, count):
-        super(Joint, self).__init__()
-        self.count = count
-
-    def add_point(self, point, speed):
-        super().add(point, speed)
-        return self.get_joint()
-
-    def set_points(self):
-        super().set_points()
-        return self.get_joint()
-
     def get_point(self, points, alpha, deg=None):
         if deg is None:
             deg = len(points) - 1
@@ -108,7 +85,23 @@ class Joint(Line):
             result.append(self.get_point(base_points, i * alpha))
         return result
 
-    def get_joint(self):
+    def speed_up(self, n):
+        for s in range(len(self.speeds)):
+            self.speeds[s] *= n
+
+    def delete(self, ind):
+        self.points.pop(ind)
+        self.speeds.pop(ind)
+
+
+class Joint(Line):
+
+    def __init__(self, count):
+        super(Joint, self).__init__()
+
+
+    def get_joint(self, count):
+
         if len(self.points) < 3:
             return []
         result = []
@@ -118,7 +111,7 @@ class Joint(Line):
             pnt.append(self.points[i + 1])
             pnt.append((self.points[i + 1] + self.points[i + 2]) * 0.5)
 
-            result.extend(self.get_points(pnt, self.count))
+            result.extend(self.get_points(pnt, count))
         return result
 
 
@@ -130,8 +123,11 @@ def display_help():
     data.append(["F1", "Помощь"])
     data.append(["R", "Перезапуск"])
     data.append(["P", "Воспроизвести / Пауза"])
-    data.append(["Num+", "Добавить точку"])
+    data.append(["Space", "Добавить точку"])
     data.append(["Num-", "Удалить точку"])
+    data.append(["LEFT", "Уменьшить кривизну"])
+    data.append(["RIGHT", "Увеличить кривизну"])
+
     data.append(["", ""])
     data.append([str(steps), "текущих точек"])
 
@@ -171,18 +167,30 @@ if __name__ == "__main__":
                     joint = Joint(steps)
                 if event.key == pygame.K_p:
                     pause = not pause
-                if event.key == pygame.K_PLUS:
-                    steps += 1
+
                 if event.key == pygame.K_F1:
                     show_help = not show_help
                 if event.key == pygame.K_MINUS:
-                    if len(joint.points) > 3:
-                        joint.delete(-1)
+                    if len(joint.points) > 0:
+                        joint.delete(0)
+                    else:
+                        pass
+                if event.key == pygame.K_SPACE:
+                    joint.add_point(Vector(randint(0, 1280), randint(0, 720)), Vector(random() * 2, random() * 2))
 
                 if event.key == pygame.K_UP:
                     joint.speed_up(2)
                 if event.key == pygame.K_DOWN:
                     joint.speed_up(0.5)
+
+                if event.key == pygame.K_LEFT:
+                    steps -= 1 if steps > 1 else 0
+
+                if event.key == pygame.K_RIGHT:
+                    steps += 1
+
+                if event.key == pygame.K_RIGHT:
+                    steps += 1
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 joint.add_point(Vector(*event.pos), Vector(random() * 2, random() * 2))
@@ -190,7 +198,7 @@ if __name__ == "__main__":
         color_param = (color_param + 1) % 360
         color.hsla = (color_param, 100, 50, 100)
         joint.draw_points(gameDisplay)
-        joint.draw_points(gameDisplay, joint.get_joint(), "line", 4, color)
+        joint.draw_points(gameDisplay, joint.get_joint(steps), "line", 4, color)
         if not pause:
             joint.set_points()
         if show_help:
